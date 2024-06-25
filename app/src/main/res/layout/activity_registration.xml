@@ -74,7 +74,7 @@
         tools:ignore="MissingConstraints" />
 
     <Button
-        android:id="@+id/button"
+        android:id="@+id/RegInButton"
         android:layout_width="235dp"
         android:layout_height="65dp"
         android:layout_marginTop="20dp"
@@ -95,7 +95,7 @@
         android:textSize="20sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button"
+        app:layout_constraintTop_toBottomOf="@+id/RegInButton"
         tools:ignore="MissingConstraints" />
 
     <Button

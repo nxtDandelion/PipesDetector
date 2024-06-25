@@ -16,9 +16,16 @@ class RegistrationActivity : AppCompatActivity() {
         setContentView(R.layout.activity_registration)
 
         val toLogInButton : Button = findViewById(R.id.ToLogInScreen)
+        val RegInButton : Button = findViewById(R.id.RegInButton)
 
+        // Реализация перехода в окно входа
         toLogInButton.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)
+            startActivity(intent)
+        }
+
+        RegInButton.setOnClickListener {
+            val intent = Intent(this, ScannerWindowActivity::class.java)
             startActivity(intent)
         }
     }
