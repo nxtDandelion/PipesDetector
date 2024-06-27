@@ -3,7 +3,9 @@ package com.example.pipesdetector
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import android.provider.ContactsContract.CommonDataKinds.Email
 import android.widget.Button
+import android.widget.EditText
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -17,6 +19,10 @@ class RegistrationActivity : AppCompatActivity() {
 
         val toLogInButton : Button = findViewById(R.id.ToLogInScreen)
         val RegInButton : Button = findViewById(R.id.RegInButton)
+        val userEmail : EditText = findViewById(R.id.EmailAddress)
+        val userLogin : EditText = findViewById(R.id.UserLoginRegistrationScreen)
+        val userPassword : EditText = findViewById(R.id.UserPasswordRegistrationScreen)
+
 
         // Реализация перехода в окно входа
         toLogInButton.setOnClickListener {
@@ -24,6 +30,7 @@ class RegistrationActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        // Реализация регистрации
         RegInButton.setOnClickListener {
             val intent = Intent(this, ScannerWindowActivity::class.java)
             startActivity(intent)
