@@ -23,14 +23,11 @@ class RegistrationActivity : AppCompatActivity() {
         val userLogin : EditText = findViewById(R.id.UserLoginRegistrationScreen)
         val userPassword : EditText = findViewById(R.id.UserPasswordRegistrationScreen)
 
-
-        // Реализация перехода в окно входа
         toLogInButton.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)
             startActivity(intent)
         }
 
-        // Реализация регистрации
         RegInButton.setOnClickListener {
             val intent = Intent(this, ScannerWindowActivity::class.java)
             startActivity(intent)

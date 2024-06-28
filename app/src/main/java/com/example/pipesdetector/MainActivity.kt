@@ -18,17 +18,12 @@ class MainActivity : AppCompatActivity() {
         val logInButton : Button = findViewById(R.id.LogInButton) // Кнопка входа
         val toRegistrationButton : Button = findViewById(R.id.ToRegInScreenButton) // Кнопка перехода в окно регистрации
 
-        // Переход в функциональную часть
         logInButton.setOnClickListener {
-
-            // Миша или Родион добавьте сюда проверку через ваш клиент-сервер
-            // что такой пользователь существует
 
             val intent = Intent(this, ScannerWindowActivity::class.java)
             startActivity(intent)
         }
 
-        // Реализация перехода в окно регистрации
         toRegistrationButton.setOnClickListener {
             val intent = Intent(this, RegistrationActivity::class.java)
             startActivity(intent)

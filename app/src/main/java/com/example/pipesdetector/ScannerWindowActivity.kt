@@ -1,59 +1,69 @@
 package com.example.pipesdetector
 
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.os.Bundle
 import android.provider.MediaStore
 import android.widget.Button
-import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 
 class ScannerWindowActivity : AppCompatActivity() {
-    private lateinit var permissionLauncher: ActivityResultLauncher<String>
+    private val CAMERA_REQUEST_CODE = 1
+    private val CAMERA_PERMISSION_CODE = 2
+    private val GALLERY_PERMISSION_CODE = 3
+    private val GALLERY_REQUEST_CODE = 4
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_scanner_window)
-        registerPermission()
-        checkPermission()
-        val cameraButton : Button = findViewById(R.id.ButtonForCamera)
+
+        getPermissions()
+
+        val cameraButton: Button = findViewById(R.id.ButtonForCamera)
+        val galleryButton : Button = findViewById(R.id.ButtonForGalery)
 
         cameraButton.setOnClickListener(){
             val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-            startActivityForResult(cameraIntent, pic_id)
+            startActivityForResult(cameraIntent, CAMERA_REQUEST_CODE)
+        }
+
+        galleryButton.setOnClickListener(){
+            val galleryIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+            startActivityForResult(galleryIntent, GALLERY_REQUEST_CODE)
         }
     }
 
-    private fun checkPermission(){
-        when{
-            ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) ==
-                    PackageManager.PERMISSION_GRANTED -> { }
-            else->{
-                permissionLauncher.launch(android.Manifest.permission.CAMERA)
-            }
+    private fun getPermissions() : Boolean{
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(android.Manifest.permission.CAMERA, android.Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                CAMERA_PERMISSION_CODE
+            )
+            return false
         }
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE),
+                GALLERY_PERMISSION_CODE
+            )
+            return false
+        }
+        return true
     }
 
-    private fun registerPermission(){
-        permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()){
-            Toast.makeText(this, "Разрешение получено", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    override fun onActivityResult(requestCode:Int, resultCode:Int, data:Intent?){
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode:Int, resultCode:Int, data:Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if(requestCode == pic_id){
-            val photo = data!!.extras!!["data"] as Bitmap
+        if (requestCode == CAMERA_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            // фото с камеры
+        } else if (requestCode == GALLERY_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            // изображения из галереи
         }
-    }
-
-    companion object{
-        private const val pic_id = 123
     }
 }
