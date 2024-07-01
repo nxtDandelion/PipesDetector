@@ -3,9 +3,21 @@ package com.example.pipesdetector
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonParser
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.URL
 
 class MainActivity : AppCompatActivity() {
     @SuppressLint("MissingInflatedId")
@@ -18,15 +30,84 @@ class MainActivity : AppCompatActivity() {
         val logInButton : Button = findViewById(R.id.LogInButton) // Кнопка входа
         val toRegistrationButton : Button = findViewById(R.id.ToRegInScreenButton) // Кнопка перехода в окно регистрации
 
-        logInButton.setOnClickListener {
+        val intentForScanner = Intent(this, ScannerWindowActivity::class.java)
+        val intentForRegistration = Intent(this, RegistrationActivity::class.java)
 
-            val intent = Intent(this, ScannerWindowActivity::class.java)
-            startActivity(intent)
+        logInButton.setOnClickListener {
+            if(isFieldEmpty(userLogin)) {
+                Toast.makeText(this, "Поле \"Логин\" должно быть заполнено", Toast.LENGTH_SHORT).show();}
+            else if(isFieldEmpty(userPassword)){
+                Toast.makeText(this, "Поле \"Пароль\" должно быть заполнено", Toast.LENGTH_SHORT).show();}
+            else{
+                if(sendRequestToBackend(userLogin.text.toString(), userPassword.text.toString())){
+                    startActivity(intentForScanner)
+                }
+            }
         }
 
         toRegistrationButton.setOnClickListener {
-            val intent = Intent(this, RegistrationActivity::class.java)
-            startActivity(intent)
+            startActivity(intentForRegistration)
         }
+    }
+
+    private fun isFieldEmpty(text: EditText): Boolean {
+        return text.text.toString().trim() == ""
+    }
+
+    private fun sendRequestToBackend(login : String, password : String, ) : Boolean{
+        val jsonObject = JSONObject()
+        jsonObject.put("name", login)
+        jsonObject.put("password", password)
+
+        var flag = false
+        val jsonObjectString = jsonObject.toString()
+        val url = URL("http://192.168.0.177:8080/loginUser")
+
+        GlobalScope.launch(Dispatchers.IO) {
+
+            val httpURLConnection = url.openConnection() as HttpURLConnection
+
+            httpURLConnection.requestMethod = "POST"
+            httpURLConnection.setRequestProperty("Content-Type", "application/json")
+            httpURLConnection.setRequestProperty("Accept", "application/json")
+            httpURLConnection.doInput = true
+            httpURLConnection.doOutput = true
+
+            val outputStreamWriter = OutputStreamWriter(httpURLConnection.outputStream)
+            outputStreamWriter.write(jsonObjectString)
+            outputStreamWriter.flush()
+
+            val responseCode = httpURLConnection.responseCode
+
+            val inputStream = if (responseCode.toString().trim() == "302") {
+                httpURLConnection.inputStream
+            } else {
+                httpURLConnection.errorStream
+            }
+            val response = inputStream.bufferedReader().use { it.readText() }
+            val jsonResponse = JSONObject(response)
+            if (responseCode.toString().trim() == "302"){
+                flag = true
+                withContext(Dispatchers.Main) {
+                    Log.d("Response", jsonResponse.toString())
+                }
+
+            } else {
+                flag = false
+                val httpStatus = jsonResponse.getInt("httpStatus")
+                val message = jsonResponse.getString("message")
+                withContext(Dispatchers.Main) {
+                    when (httpStatus) {
+                        404 -> {
+                            Log.e("Error", message)
+                        }
+                        else -> {
+                            Log.e("Error", "Unexpected error: $message")
+                        }
+                    }
+                }
+            }
+        }
+        return flag
     }
 }
