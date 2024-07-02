@@ -19,6 +19,8 @@ import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 
+
+
 class MainActivity : AppCompatActivity() {
     @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,8 +41,11 @@ class MainActivity : AppCompatActivity() {
             else if(isFieldEmpty(userPassword)){
                 Toast.makeText(this, "Поле \"Пароль\" должно быть заполнено", Toast.LENGTH_SHORT).show();}
             else{
-                if(sendRequestToBackend(userLogin.text.toString(), userPassword.text.toString())){
-                    startActivity(intentForScanner)
+                GlobalScope.launch {
+                    sendRequestToBackend(userLogin.text.toString(), userPassword.text.toString()) { result ->
+                        if (result) {
+                            startActivity(intentForScanner) }
+                    }
                 }
             }
         }
@@ -54,17 +59,17 @@ class MainActivity : AppCompatActivity() {
         return text.text.toString().trim() == ""
     }
 
-    private fun sendRequestToBackend(login : String, password : String, ) : Boolean{
+    private suspend fun sendRequestToBackend(login: String, password: String, onResult: (Boolean) -> Unit) {
         val jsonObject = JSONObject()
         jsonObject.put("name", login)
         jsonObject.put("password", password)
 
-        var flag = false
         val jsonObjectString = jsonObject.toString()
         val url = URL("http://192.168.0.177:8080/loginUser")
 
-        GlobalScope.launch(Dispatchers.IO) {
+        var flag = false
 
+        withContext(Dispatchers.IO) {
             val httpURLConnection = url.openConnection() as HttpURLConnection
 
             httpURLConnection.requestMethod = "POST"
@@ -86,12 +91,11 @@ class MainActivity : AppCompatActivity() {
             }
             val response = inputStream.bufferedReader().use { it.readText() }
             val jsonResponse = JSONObject(response)
-            if (responseCode.toString().trim() == "302"){
+            if (responseCode.toString().trim() == "302") {
                 flag = true
                 withContext(Dispatchers.Main) {
                     Log.d("Response", jsonResponse.toString())
                 }
-
             } else {
                 flag = false
                 val httpStatus = jsonResponse.getInt("httpStatus")
@@ -100,14 +104,16 @@ class MainActivity : AppCompatActivity() {
                     when (httpStatus) {
                         404 -> {
                             Log.e("Error", message)
+                            Toast.makeText(this@MainActivity, "Error: $message", Toast.LENGTH_SHORT).show();
                         }
                         else -> {
                             Log.e("Error", "Unexpected error: $message")
+                            Toast.makeText(this@MainActivity, "Error: $message", Toast.LENGTH_SHORT).show();
                         }
                     }
                 }
             }
         }
-        return flag
+        onResult(flag)
     }
 }
