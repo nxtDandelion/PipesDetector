@@ -11,13 +11,16 @@
 
     <TextView
         android:id="@+id/infoText"
-        android:layout_width="353dp"
-        android:layout_height="30dp"
+        android:layout_width="400dp"
+        android:layout_height="40dp"
         android:layout_marginTop="4dp"
-        android:textStyle="bold"
         android:gravity="center"
         android:text="Выберите способ сканирования"
-        android:textSize="23sp"
+        android:textColor="@color/black"
+        android:shadowColor="#A6A5A5"
+        android:shadowRadius="5"
+        android:textSize="26sp"
+        android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -25,83 +28,103 @@
 
     <ImageView
         android:id="@+id/imageBeforeNeuro"
-        android:layout_width="310dp"
-        android:layout_height="203dp"
+        android:layout_width="328dp"
+        android:layout_height="224dp"
         app:layout_constraintBottom_toTopOf="@+id/TextForCamera"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.493"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/infoText"
-        app:layout_constraintVertical_bias="0.041" />
+        app:layout_constraintVertical_bias="0.044" />
 
     <ImageView
         android:id='@+id/imageAfterNeuro'
-        android:layout_width="311dp"
-        android:layout_height="192dp"
-        app:layout_constraintBottom_toTopOf="@+id/TextForCamera"
+        android:layout_width="331dp"
+        android:layout_height="199dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/NumberOfPipes"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.51"
+        app:layout_constraintHorizontal_bias="0.487"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/imageBeforeNeuro"
-        app:layout_constraintVertical_bias="0.109" />
+        app:layout_constraintTop_toBottomOf="@+id/imageBeforeNeuro" />
 
     <Button
         android:id="@+id/ButtonForCamera"
         android:layout_width="148dp"
         android:layout_height="56dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginBottom="12dp"
+        android:backgroundTint="#000000"
         android:gravity="center"
+        android:textSize="17sp"
+        android:shadowColor="#818080"
+        android:shadowRadius="14"
         android:text="Камера"
+        app:layout_constraintBottom_toTopOf="@+id/TextForGalery"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.498"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/TextForCamera" />
+        app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
         android:id="@+id/TextForCamera"
         android:layout_width="235dp"
         android:layout_height="28dp"
+        android:layout_marginBottom="8dp"
         android:gravity="center"
-        android:layout_marginTop="480dp"
+        android:textStyle="bold"
+        android:textColor="@color/black"
         android:text="Сделать фотографию"
+        android:shadowColor="#A6A5A5"
+        android:shadowRadius="5"
         android:textSize="22sp"
+        app:layout_constraintBottom_toTopOf="@+id/ButtonForCamera"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/infoText"
         tools:ignore="TextSizeCheck" />
 
     <TextView
         android:id="@+id/TextForGalery"
-        android:layout_width="211dp"
-        android:layout_height="26dp"
+        android:layout_width="213dp"
+        android:layout_height="33dp"
+        android:layout_marginBottom="8dp"
         android:gravity="center"
-        android:layout_marginTop="20dp"
+        android:shadowColor="#A6A5A5"
+        android:shadowRadius="5"
         android:text="Выбрать из галереи"
+        android:textColor="@color/black"
         android:textSize="22sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@+id/ButtonForGalery"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/ButtonForCamera" />
+        app:layout_constraintStart_toStartOf="parent" />
 
     <Button
         android:id="@+id/ButtonForGalery"
         android:layout_width="145dp"
         android:layout_height="60dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginBottom="8dp"
         android:gravity="center"
+        android:backgroundTint="#000000"
+        android:shadowColor="#818080"
+        android:shadowRadius="14"
+        android:textSize="17sp"
         android:text="Галерея"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/TextForGalery" />
+        app:layout_constraintHorizontal_bias="0.503"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
         android:id="@+id/NumberOfPipes"
         android:layout_width="388dp"
         android:layout_height="44dp"
+        android:layout_marginBottom="8dp"
         android:gravity="center"
+        android:textColor="@color/black"
         android:text=""
         android:textSize="27sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@+id/TextForCamera"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/imageAfterNeuro" />
+        app:layout_constraintHorizontal_bias="0.478"
+        app:layout_constraintStart_toStartOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>
