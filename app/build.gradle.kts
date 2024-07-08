@@ -35,6 +35,7 @@ android {
     }
 }
 
+
 dependencies {
 
     implementation(libs.androidx.core.ktx)
@@ -43,6 +44,7 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.firebase.crashlytics.buildtools)
+    implementation ("com.squareup.picasso:picasso:2.5.2")
     implementation(libs.volley)
     implementation("com.google.code.gson:gson:2.8.6")
     testImplementation(libs.junit)

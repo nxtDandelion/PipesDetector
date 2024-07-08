@@ -1,6 +1,7 @@
 package com.example.pipesdetector
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -8,8 +9,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.google.gson.GsonBuilder
-import com.google.gson.JsonParser
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -22,15 +22,16 @@ import java.net.URL
 
 
 class MainActivity : AppCompatActivity() {
+    @OptIn(DelicateCoroutinesApi::class)
     @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val userLogin : EditText = findViewById(R.id.UserNameLogInScreen)  // Логин для входа
-        val userPassword : EditText = findViewById(R.id.UserPasswordLogInScreen) // Пароль для входа
-        val logInButton : Button = findViewById(R.id.LogInButton) // Кнопка входа
-        val toRegistrationButton : Button = findViewById(R.id.ToRegInScreenButton) // Кнопка перехода в окно регистрации
+        val userLogin : EditText = findViewById(R.id.UserNameLogInScreen)
+        val userPassword : EditText = findViewById(R.id.UserPasswordLogInScreen)
+        val logInButton : Button = findViewById(R.id.LogInButton)
+        val toRegistrationButton : Button = findViewById(R.id.ToRegInScreenButton)
 
         val intentForScanner = Intent(this, ScannerWindowActivity::class.java)
         val intentForRegistration = Intent(this, RegistrationActivity::class.java)
@@ -63,12 +64,9 @@ class MainActivity : AppCompatActivity() {
         val jsonObject = JSONObject()
         jsonObject.put("name", login)
         jsonObject.put("password", password)
-
         val jsonObjectString = jsonObject.toString()
-        val url = URL("http://192.168.0.177:8080/loginUser")
-
+        val url = URL("http://192.168.0.177:8080/login")
         var flag = false
-
         withContext(Dispatchers.IO) {
             val httpURLConnection = url.openConnection() as HttpURLConnection
 
@@ -84,17 +82,19 @@ class MainActivity : AppCompatActivity() {
 
             val responseCode = httpURLConnection.responseCode
 
-            val inputStream = if (responseCode.toString().trim() == "302") {
-                httpURLConnection.inputStream
-            } else {
-                httpURLConnection.errorStream
-            }
+            val inputStream = if (responseCode.toString().trim() == "302") { httpURLConnection.inputStream
+            } else { httpURLConnection.errorStream }
             val response = inputStream.bufferedReader().use { it.readText() }
             val jsonResponse = JSONObject(response)
             if (responseCode.toString().trim() == "302") {
                 flag = true
                 withContext(Dispatchers.Main) {
-                    Log.d("Response", jsonResponse.toString())
+                    val jwtToken = jsonResponse.getString("jwt-token")
+                    val sharedPref = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                    val editor = sharedPref.edit()
+                    editor.putString("jwt-token", jwtToken)
+                    editor.apply()
+                    Log.d("JWT Token", jwtToken)
                 }
             } else {
                 flag = false

@@ -1,6 +1,7 @@
 package com.example.pipesdetector
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.provider.ContactsContract.CommonDataKinds.Email
@@ -48,6 +49,8 @@ class RegistrationActivity : AppCompatActivity() {
         val userLogin : EditText = findViewById(R.id.UserLoginRegistrationScreen)
         val userPassword : EditText = findViewById(R.id.UserPasswordRegistrationScreen)
 
+        val intent1 = Intent(this, ScannerWindowActivity::class.java)
+
         toLogInButton.setOnClickListener {
                 val intent = Intent(this, MainActivity::class.java)
                 startActivity(intent)
@@ -61,10 +64,13 @@ class RegistrationActivity : AppCompatActivity() {
             else if(isFieldEmpty(userPassword)){
                 Toast.makeText(this, "Поле \"Пароль\" должно быть заполнено", Toast.LENGTH_SHORT).show();}
             else{
-                sendRequestToBackend(userLogin.text.toString(), userPassword.text.toString(), userEmail.text.toString())
-                val intent = Intent(this, ScannerWindowActivity::class.java)
-                startActivity(intent)}
+                GlobalScope.launch {
+                sendRequestToBackend(userLogin.text.toString(), userPassword.text.toString(), userEmail.text.toString()) { result ->
+                    if (result) {
+                        startActivity(intent1) }
+                }}
 
+            }
         }
     }
 
@@ -72,16 +78,17 @@ class RegistrationActivity : AppCompatActivity() {
         return text.text.toString().trim() == ""
     }
 
-    private fun sendRequestToBackend(login : String, password : String, email : String) {
+    private suspend fun sendRequestToBackend(login : String, password : String, email : String, onResult: (Boolean) -> Unit){
         val jsonObject = JSONObject()
         jsonObject.put("name", login)
         jsonObject.put("password", password)
         jsonObject.put("email", email)
 
         val jsonObjectString = jsonObject.toString()
+        var flag = false
 
-        GlobalScope.launch(Dispatchers.IO) {
-            val url = URL("http://192.168.0.177:8080/registration")
+        val url = URL("http://192.168.0.177:8080/registration")
+        withContext(Dispatchers.IO){
             val httpURLConnection = url.openConnection() as HttpURLConnection
             httpURLConnection.requestMethod = "POST"
             httpURLConnection.setRequestProperty("Content-Type", "application/json")
@@ -94,17 +101,23 @@ class RegistrationActivity : AppCompatActivity() {
             outputStreamWriter.flush()
 
             val responseCode = httpURLConnection.responseCode
-            if (responseCode == HttpURLConnection.HTTP_OK) {
+            if (responseCode.toString() == "201") {
+                flag = true
                 val response = httpURLConnection.inputStream.bufferedReader()
-                    .use { it.readText() }  // defaults to UTF-8
+                    .use { it.readText() }
+                val jsonResponse = JSONObject(response)
                 withContext(Dispatchers.Main) {
-                    val gson = GsonBuilder().setPrettyPrinting().create()
-                    val prJson = gson.toJson(JsonParser.parseString(response))
-                    Log.d("JSON :", prJson)
+                    val jwtToken = jsonResponse.getString("jwt-token")
+                    val sharedPref = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                    val editor = sharedPref.edit()
+                    editor.putString("jwt-token", jwtToken)
+                    editor.apply()
+                    Log.d("JWT Token", jwtToken)
                 }
             } else {
                 Log.e("HTTPURLCONNECTION_ERROR", responseCode.toString())
             }
         }
+        onResult(flag)
     }
 }

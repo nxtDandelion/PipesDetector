@@ -2,34 +2,31 @@ package com.example.pipesdetector
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Base64
 import android.util.Log
 import android.widget.Button
 import android.widget.ImageView
-import android.widget.Toast
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.OutputStreamWriter
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
-import android.util.Base64
-import android.widget.TextView
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import java.io.IOException
 
 
 class ScannerWindowActivity : AppCompatActivity() {
@@ -46,6 +43,7 @@ class ScannerWindowActivity : AppCompatActivity() {
         setContentView(R.layout.activity_scanner_window)
 
         getPermissions()
+
 
         val cameraButton: Button = findViewById(R.id.ButtonForCamera)
         val galleryButton: Button = findViewById(R.id.ButtonForGalery)
@@ -131,6 +129,8 @@ class ScannerWindowActivity : AppCompatActivity() {
         }
     }
 
+
+
     private fun encodeImageToString(imageBitmap: Bitmap): String {
         val baos = ByteArrayOutputStream()
         imageBitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos)
@@ -144,23 +144,23 @@ class ScannerWindowActivity : AppCompatActivity() {
         return BitmapFactory.decodeStream(stream)
     }
 
+
     private suspend fun sendRequestToBackend(imageString: String) : Pair<String, Int> {
         return withContext(Dispatchers.IO) {
             var encodedImage = ""
             var objectsCount = 0
-
             val jsonObject = JSONObject()
             jsonObject.put("imgString", imageString)
-
             val jsonObjectString = jsonObject.toString()
             val url = URL("http://192.168.0.177:8080/countPipes")
-
+            val sharedPref = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            val jwtToken = sharedPref.getString("jwt-token", "")
             (url.openConnection() as? HttpURLConnection)?.run {
                 requestMethod = "POST"
                 setRequestProperty("Content-Type", "application/json")
                 setRequestProperty("Accept", "application/json")
+                setRequestProperty("Authorization", "Bearer $jwtToken")
                 doOutput = true
-
                 try {
                     outputStream.use { it.write(jsonObjectString.toByteArray()) }
 
