@@ -15,6 +15,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.io.IOException
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
@@ -26,6 +27,14 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val intentForScanner = Intent(this, ScannerWindowActivity::class.java)
+        GlobalScope.launch {
+            checkSession() { result ->
+                if (result){
+                    startActivity(intentForScanner)
+                }
+            }
+        }
         setContentView(R.layout.activity_main)
 
         val userLogin : EditText = findViewById(R.id.UserNameLogInScreen)
@@ -33,7 +42,6 @@ class MainActivity : AppCompatActivity() {
         val logInButton : Button = findViewById(R.id.LogInButton)
         val toRegistrationButton : Button = findViewById(R.id.ToRegInScreenButton)
 
-        val intentForScanner = Intent(this, ScannerWindowActivity::class.java)
         val intentForRegistration = Intent(this, RegistrationActivity::class.java)
 
         logInButton.setOnClickListener {
@@ -58,6 +66,34 @@ class MainActivity : AppCompatActivity() {
 
     private fun isFieldEmpty(text: EditText): Boolean {
         return text.text.toString().trim() == ""
+    }
+
+    private suspend fun checkSession(onResult: (Boolean) -> Unit) {
+        var flag = false
+        val sharedPref = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val jwtToken = sharedPref.getString("jwt-token", "")
+        val url = URL("http://192.168.0.177:8080/signIn")
+        withContext(Dispatchers.IO) {
+            val httpURLConnection = url.openConnection() as HttpURLConnection
+            httpURLConnection.requestMethod = "GET"
+            httpURLConnection.setRequestProperty("Content-Type", "application/json")
+            httpURLConnection.setRequestProperty("Accept", "application/json")
+            httpURLConnection.setRequestProperty("Authorization", "Bearer $jwtToken")
+            try{
+                val responseCode = httpURLConnection.responseCode
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    flag = true
+                    Log.d("JWT Token", "$jwtToken")
+                } else {
+                    Log.e("Error", "Failed to send request. Response code: $responseCode")
+                }
+            }catch (e: IOException){
+                Log.e("Error", "Failed to send request: ${e.message}")
+            } finally {
+                httpURLConnection.disconnect()
+            }
+        }
+        onResult(flag)
     }
 
     private suspend fun sendRequestToBackend(login: String, password: String, onResult: (Boolean) -> Unit) {

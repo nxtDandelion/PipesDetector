@@ -2,6 +2,7 @@ package com.example.pipesdetector
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -13,6 +14,7 @@ import android.util.Base64
 import android.util.Log
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -20,6 +22,7 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
@@ -37,6 +40,7 @@ class ScannerWindowActivity : AppCompatActivity() {
     lateinit var firstImageID: ImageView
     lateinit var secondImageID: ImageView
     lateinit var countOfPipesText : TextView
+    lateinit var info : TextView
     @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,21 +48,29 @@ class ScannerWindowActivity : AppCompatActivity() {
 
         getPermissions()
 
-
-        val cameraButton: Button = findViewById(R.id.ButtonForCamera)
         val galleryButton: Button = findViewById(R.id.ButtonForGalery)
+        info = findViewById(R.id.infoText)
         countOfPipesText = findViewById(R.id.NumberOfPipes)
         firstImageID = findViewById(R.id.imageBeforeNeuro)
         secondImageID = findViewById(R.id.imageAfterNeuro)
 
-        cameraButton.setOnClickListener() {
-            val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-            startActivityForResult(cameraIntent, CAMERA_REQUEST_CODE)
-        }
 
         galleryButton.setOnClickListener() {
-            val galleryIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-            startActivityForResult(galleryIntent, GALLERY_REQUEST_CODE)
+            val alertDialog = AlertDialog.Builder(this)
+            alertDialog.setTitle("Выберите источник")
+            alertDialog.setItems(arrayOf("Камера", "Галерея")) { dialog, which ->
+                when (which) {
+                    1 -> {
+                        val galleryIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                        startActivityForResult(galleryIntent, GALLERY_REQUEST_CODE)
+                    }
+                    0 -> {
+                        val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+                        startActivityForResult(cameraIntent, CAMERA_REQUEST_CODE)
+                    }
+                }
+            }
+            alertDialog.show()
         }
     }
 
@@ -103,13 +115,15 @@ class ScannerWindowActivity : AppCompatActivity() {
         if (requestCode == CAMERA_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
             val photo = data?.extras?.get("data") as Bitmap
             firstImageID.setImageBitmap(photo)
+            info.text = ""
+            countOfPipesText.text = "Обработка"
             val imageString = encodeImageToString(photo)
             GlobalScope.launch {
                 val (imageFromBackend, pipesCount) = sendRequestToBackend(imageString)
                 val imageBitmapAfterDecode = decodeStringToImage(imageFromBackend)
                 runOnUiThread {
                     secondImageID.setImageBitmap(imageBitmapAfterDecode)
-                    countOfPipesText.setText("Число труб на фото: $pipesCount")
+                    countOfPipesText.text = "Число труб на фото: $pipesCount"
                 }
             }
         } else if (requestCode == GALLERY_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
@@ -117,18 +131,19 @@ class ScannerWindowActivity : AppCompatActivity() {
             val inputStream = selectedImageUri?.let { contentResolver.openInputStream(it) }
             val imageBitmap = BitmapFactory.decodeStream(inputStream)
             firstImageID.setImageBitmap(imageBitmap)
+            info.text = ""
+            countOfPipesText.text = "Обработка"
             val imageString = encodeImageToString(imageBitmap)
             GlobalScope.launch {
                 val (imageFromBackend, pipesCount) = sendRequestToBackend(imageString)
                 val imageBitmapAfterDecode = decodeStringToImage(imageFromBackend)
                 runOnUiThread {
                     secondImageID.setImageBitmap(imageBitmapAfterDecode)
-                    countOfPipesText.setText("Число труб на фото: $pipesCount")
+                    countOfPipesText.text = "Число труб на фото: $pipesCount"
                 }
             }
         }
     }
-
 
 
     private fun encodeImageToString(imageBitmap: Bitmap): String {
