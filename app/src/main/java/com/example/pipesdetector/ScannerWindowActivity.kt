@@ -14,15 +14,15 @@ import android.util.Base64
 import android.util.Log
 import android.widget.Button
 import android.widget.ImageView
-import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.pipesdetector.MainActivity.ServerIp
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
@@ -37,10 +37,11 @@ class ScannerWindowActivity : AppCompatActivity() {
     private val CAMERA_PERMISSION_CODE = 2
     private val GALLERY_PERMISSION_CODE = 3
     private val GALLERY_REQUEST_CODE = 4
-    lateinit var firstImageID: ImageView
-    lateinit var secondImageID: ImageView
-    lateinit var countOfPipesText : TextView
-    lateinit var info : TextView
+    private lateinit var firstImageID: ImageView
+    private lateinit var secondImageID: ImageView
+    private lateinit var countOfPipesText : TextView
+    private lateinit var info : TextView
+    @OptIn(DelicateCoroutinesApi::class)
     @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,19 +54,28 @@ class ScannerWindowActivity : AppCompatActivity() {
         countOfPipesText = findViewById(R.id.NumberOfPipes)
         firstImageID = findViewById(R.id.imageBeforeNeuro)
         secondImageID = findViewById(R.id.imageAfterNeuro)
+        val intentForLogin = Intent(this, MainActivity::class.java)
 
-
-        galleryButton.setOnClickListener() {
+        galleryButton.setOnClickListener {
+            GlobalScope.launch {
+                checkSession { result ->
+                    if (result){
+                        startActivity(intentForLogin)
+                    }
+                }
+            }
             val alertDialog = AlertDialog.Builder(this)
             alertDialog.setTitle("Выберите источник")
-            alertDialog.setItems(arrayOf("Камера", "Галерея")) { dialog, which ->
+            alertDialog.setItems(arrayOf("Камера", "Галерея")) { _, which ->
                 when (which) {
                     1 -> {
                         val galleryIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                        @Suppress("DEPRECATION")
                         startActivityForResult(galleryIntent, GALLERY_REQUEST_CODE)
                     }
                     0 -> {
                         val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+                        @Suppress("DEPRECATION")
                         startActivityForResult(cameraIntent, CAMERA_REQUEST_CODE)
                     }
                 }
@@ -109,11 +119,41 @@ class ScannerWindowActivity : AppCompatActivity() {
         return true
     }
 
+    private suspend fun checkSession(onResult: (Boolean) -> Unit) {
+        var flag = false
+        val sharedPref = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val jwtToken = sharedPref.getString("jwt-token", "")
+        val url = URL("${ServerIp.IP}/signIn")
+        withContext(Dispatchers.IO) {
+            val httpURLConnection = url.openConnection() as HttpURLConnection
+            httpURLConnection.requestMethod = "GET"
+            httpURLConnection.setRequestProperty("Content-Type", "application/json")
+            httpURLConnection.setRequestProperty("Accept", "application/json")
+            httpURLConnection.setRequestProperty("Authorization", "Bearer $jwtToken")
+            try{
+                val responseCode = httpURLConnection.responseCode
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    flag = true
+                    Log.d("JWT Token", "$jwtToken")
+                } else {
+                    Log.e("Error", "Failed to send request. Response code: $responseCode")
+                }
+            }catch (e: IOException){
+                Log.e("Error", "Failed to send request: ${e.message}")
+            } finally {
+                httpURLConnection.disconnect()
+            }
+        }
+        onResult(flag)
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
+    @SuppressLint("SetTextI18n")
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == CAMERA_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            val photo = data?.extras?.get("data") as Bitmap
+            @Suppress("DEPRECATION") val photo = data?.extras?.get("data") as Bitmap
             firstImageID.setImageBitmap(photo)
             info.text = ""
             countOfPipesText.text = "Обработка"
@@ -145,7 +185,6 @@ class ScannerWindowActivity : AppCompatActivity() {
         }
     }
 
-
     private fun encodeImageToString(imageBitmap: Bitmap): String {
         val baos = ByteArrayOutputStream()
         imageBitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos)
@@ -159,7 +198,6 @@ class ScannerWindowActivity : AppCompatActivity() {
         return BitmapFactory.decodeStream(stream)
     }
 
-
     private suspend fun sendRequestToBackend(imageString: String) : Pair<String, Int> {
         return withContext(Dispatchers.IO) {
             var encodedImage = ""
@@ -167,7 +205,7 @@ class ScannerWindowActivity : AppCompatActivity() {
             val jsonObject = JSONObject()
             jsonObject.put("imgString", imageString)
             val jsonObjectString = jsonObject.toString()
-            val url = URL("http://192.168.0.177:8080/countPipes")
+            val url = URL("${ServerIp.IP}/countPipes")
             val sharedPref = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
             val jwtToken = sharedPref.getString("jwt-token", "")
             (url.openConnection() as? HttpURLConnection)?.run {

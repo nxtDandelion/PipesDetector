@@ -23,19 +23,21 @@ import java.net.URL
 
 
 class MainActivity : AppCompatActivity() {
+
     @OptIn(DelicateCoroutinesApi::class)
     @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val intentForScanner = Intent(this, ScannerWindowActivity::class.java)
         GlobalScope.launch {
-            checkSession() { result ->
+            checkSession { result ->
                 if (result){
                     startActivity(intentForScanner)
                 }
             }
         }
         setContentView(R.layout.activity_main)
+
 
         val userLogin : EditText = findViewById(R.id.UserNameLogInScreen)
         val userPassword : EditText = findViewById(R.id.UserPasswordLogInScreen)
@@ -68,11 +70,15 @@ class MainActivity : AppCompatActivity() {
         return text.text.toString().trim() == ""
     }
 
+    object ServerIp{
+        const val IP = "http://192.168.0.177:8080"
+    }
+
     private suspend fun checkSession(onResult: (Boolean) -> Unit) {
         var flag = false
         val sharedPref = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
         val jwtToken = sharedPref.getString("jwt-token", "")
-        val url = URL("http://192.168.0.177:8080/signIn")
+        val url = URL("${ServerIp.IP}/signIn")
         withContext(Dispatchers.IO) {
             val httpURLConnection = url.openConnection() as HttpURLConnection
             httpURLConnection.requestMethod = "GET"
@@ -101,8 +107,8 @@ class MainActivity : AppCompatActivity() {
         jsonObject.put("name", login)
         jsonObject.put("password", password)
         val jsonObjectString = jsonObject.toString()
-        val url = URL("http://192.168.0.177:8080/login")
-        var flag = false
+        val url = URL("${ServerIp.IP}/login")
+        var flag: Boolean
         withContext(Dispatchers.IO) {
             val httpURLConnection = url.openConnection() as HttpURLConnection
 
@@ -140,11 +146,11 @@ class MainActivity : AppCompatActivity() {
                     when (httpStatus) {
                         404 -> {
                             Log.e("Error", message)
-                            Toast.makeText(this@MainActivity, "Error: $message", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this@MainActivity, "Error: $message", Toast.LENGTH_SHORT).show()
                         }
                         else -> {
                             Log.e("Error", "Unexpected error: $message")
-                            Toast.makeText(this@MainActivity, "Error: $message", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this@MainActivity, "Error: $message", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
