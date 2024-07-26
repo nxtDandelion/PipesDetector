@@ -17,6 +17,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.IOException
 import java.io.OutputStreamWriter
+import javax.net.ssl.SSLException
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -71,7 +72,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     object ServerIp{
-        const val IP = "http://192.168.0.177:8080"
+        const val IP = "https://pipescounter.serveo.net"
     }
 
     private suspend fun checkSession(onResult: (Boolean) -> Unit) {
@@ -93,7 +94,7 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     Log.e("Error", "Failed to send request. Response code: $responseCode")
                 }
-            }catch (e: IOException){
+            } catch (e: IOException){
                 Log.e("Error", "Failed to send request: ${e.message}")
             } finally {
                 httpURLConnection.disconnect()

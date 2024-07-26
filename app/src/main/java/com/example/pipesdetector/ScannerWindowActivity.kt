@@ -59,7 +59,7 @@ class ScannerWindowActivity : AppCompatActivity() {
         galleryButton.setOnClickListener {
             GlobalScope.launch {
                 checkSession { result ->
-                    if (result){
+                    if (!result){
                         startActivity(intentForLogin)
                     }
                 }
@@ -70,7 +70,7 @@ class ScannerWindowActivity : AppCompatActivity() {
                 when (which) {
                     1 -> {
                         val galleryIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-                        @Suppress("DEPRECATION")
+                            @Suppress("DEPRECATION")
                         startActivityForResult(galleryIntent, GALLERY_REQUEST_CODE)
                     }
                     0 -> {
@@ -155,6 +155,7 @@ class ScannerWindowActivity : AppCompatActivity() {
         if (requestCode == CAMERA_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
             @Suppress("DEPRECATION") val photo = data?.extras?.get("data") as Bitmap
             firstImageID.setImageBitmap(photo)
+            secondImageID.setImageResource(0)
             info.text = ""
             countOfPipesText.text = "Обработка"
             val imageString = encodeImageToString(photo)
@@ -171,6 +172,7 @@ class ScannerWindowActivity : AppCompatActivity() {
             val inputStream = selectedImageUri?.let { contentResolver.openInputStream(it) }
             val imageBitmap = BitmapFactory.decodeStream(inputStream)
             firstImageID.setImageBitmap(imageBitmap)
+            secondImageID.setImageResource(0)
             info.text = ""
             countOfPipesText.text = "Обработка"
             val imageString = encodeImageToString(imageBitmap)
@@ -186,16 +188,26 @@ class ScannerWindowActivity : AppCompatActivity() {
     }
 
     private fun encodeImageToString(imageBitmap: Bitmap): String {
-        val baos = ByteArrayOutputStream()
-        imageBitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos)
-        val imageBytes = baos.toByteArray()
-        return Base64.encodeToString(imageBytes, Base64.DEFAULT)
+        return try {
+            val baos = ByteArrayOutputStream()
+            imageBitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos)
+            val imageBytes = baos.toByteArray()
+            Base64.encodeToString(imageBytes, Base64.DEFAULT)
+        } catch (e: IllegalArgumentException) {
+            Log.e("encodeImageToString", "Error encoding image: ${e.message}", e)
+            ""
+        }
     }
 
-    private fun decodeStringToImage(imageString: String): Bitmap {
-        val imageBytes = Base64.decode(imageString, Base64.DEFAULT)
-        val stream = ByteArrayInputStream(imageBytes)
-        return BitmapFactory.decodeStream(stream)
+    private fun decodeStringToImage(imageString: String): Bitmap? {
+        return try {
+            val imageBytes = Base64.decode(imageString, Base64.DEFAULT)
+            val stream = ByteArrayInputStream(imageBytes)
+            BitmapFactory.decodeStream(stream)
+        } catch (e: IllegalArgumentException) {
+            Log.e("decodeStringToImage", "Error decoding image: ${e.message}", e)
+            null
+        }
     }
 
     private suspend fun sendRequestToBackend(imageString: String) : Pair<String, Int> {

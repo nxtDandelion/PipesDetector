@@ -14,10 +14,11 @@
         android:layout_width="400dp"
         android:layout_height="40dp"
         android:layout_marginTop="28dp"
+        android:autoSizeTextType="uniform"
         android:gravity="center"
         android:shadowColor="#A6A5A5"
         android:shadowRadius="5"
-        android:text="Выберите способ сканирования"
+        android:text="Выберите фотографию"
         android:textColor="@color/black"
         android:textSize="26sp"
         android:textStyle="bold"
@@ -29,8 +30,9 @@
 
     <ImageView
         android:id="@+id/imageBeforeNeuro"
+        android:layout_below="@id/imageAfterNeuro"
         android:layout_width="413dp"
-        android:layout_height="321dp"
+        android:layout_height="590dp"
         android:layout_marginTop="4dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.6"
@@ -40,18 +42,20 @@
     <ImageView
         android:id='@+id/imageAfterNeuro'
         android:layout_width="413dp"
-        android:layout_height="321dp"
+        android:layout_height="590dp"
         android:layout_marginTop="4dp"
+        app:layout_constraintBottom_toBottomOf="@+id/imageBeforeNeuro"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.6"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/imageBeforeNeuro" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0" />
 
     <Button
         android:id="@+id/ButtonForGalery"
         android:layout_width="193dp"
         android:layout_height="69dp"
         android:layout_marginBottom="16dp"
+        android:autoSizeTextType="uniform"
         android:backgroundTint="#07247A"
         android:gravity="center"
         android:shadowColor="#818080"
@@ -68,6 +72,7 @@
         android:layout_height="44dp"
         android:layout_marginBottom="20dp"
         android:gravity="center"
+        android:autoSizeTextType="uniform"
         android:text=""
         android:textColor="@color/black"
         android:textSize="30sp"
@@ -77,5 +82,5 @@
         app:layout_constraintHorizontal_bias="0.478"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/imageAfterNeuro"
-        app:layout_constraintVertical_bias="0.428" />
+        app:layout_constraintVertical_bias="0.669" />
 </androidx.constraintlayout.widget.ConstraintLayout>
