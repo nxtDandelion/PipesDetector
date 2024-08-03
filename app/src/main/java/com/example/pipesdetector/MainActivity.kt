@@ -15,6 +15,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import org.json.JSONException
 import java.io.IOException
 import java.io.OutputStreamWriter
 import javax.net.ssl.SSLException
@@ -49,7 +50,8 @@ class MainActivity : AppCompatActivity() {
 
         logInButton.setOnClickListener {
             if(isFieldEmpty(userLogin)) {
-                Toast.makeText(this, "Поле \"Логин\" должно быть заполнено", Toast.LENGTH_SHORT).show();}
+                Toast.makeText(this, "Поле \"Логин\" должно быть заполнено", Toast.LENGTH_SHORT).show();
+            }
             else if(isFieldEmpty(userPassword)){
                 Toast.makeText(this, "Поле \"Пароль\" должно быть заполнено", Toast.LENGTH_SHORT).show();}
             else{
@@ -76,87 +78,115 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun checkSession(onResult: (Boolean) -> Unit) {
-        var flag = false
-        val sharedPref = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        val jwtToken = sharedPref.getString("jwt-token", "")
-        val url = URL("${ServerIp.IP}/signIn")
-        withContext(Dispatchers.IO) {
-            val httpURLConnection = url.openConnection() as HttpURLConnection
-            httpURLConnection.requestMethod = "GET"
-            httpURLConnection.setRequestProperty("Content-Type", "application/json")
-            httpURLConnection.setRequestProperty("Accept", "application/json")
-            httpURLConnection.setRequestProperty("Authorization", "Bearer $jwtToken")
-            try{
-                val responseCode = httpURLConnection.responseCode
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    flag = true
-                    Log.d("JWT Token", "$jwtToken")
-                } else {
-                    Log.e("Error", "Failed to send request. Response code: $responseCode")
+        try {
+            var flag = false
+            val sharedPref = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            val jwtToken = sharedPref.getString("jwt-token", "")
+            val url = URL("${ServerIp.IP}/signIn")
+            withContext(Dispatchers.IO) {
+                val httpURLConnection = url.openConnection() as HttpURLConnection
+                httpURLConnection.requestMethod = "GET"
+                httpURLConnection.setRequestProperty("Content-Type", "application/json")
+                httpURLConnection.setRequestProperty("Accept", "application/json")
+                httpURLConnection.setRequestProperty("Authorization", "Bearer $jwtToken")
+                try {
+                    val responseCode = httpURLConnection.responseCode
+                    if (responseCode == HttpURLConnection.HTTP_OK) {
+                        flag = true
+                        Log.d("JWT Token", "$jwtToken")
+                    } else {
+                        Log.e("Error", "Failed to send request. Response code: $responseCode")
+                    }
+                } catch (e: IOException) {
+                    Log.e("Error", "Failed to send request: ${e.message}")
+                } finally {
+                    httpURLConnection.disconnect()
                 }
-            } catch (e: IOException){
-                Log.e("Error", "Failed to send request: ${e.message}")
-            } finally {
-                httpURLConnection.disconnect()
             }
+            onResult(flag)
+        }catch (e: JSONException){
+            withContext(Dispatchers.Main) {
+                Log.e("Error", "Failed to send request: ${e.message}")
+                Toast.makeText(this@MainActivity, "Ошибка на сервере. Попробуйте позже.", Toast.LENGTH_SHORT).show()
+            }
+            onResult(false)
+        }catch (e: Exception){
+            withContext(Dispatchers.Main) {
+                Log.e("Error", "Failed to send request: ${e.message}")
+                Toast.makeText(this@MainActivity, "Непредвиденная ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+            onResult(false)
         }
-        onResult(flag)
     }
 
     private suspend fun sendRequestToBackend(login: String, password: String, onResult: (Boolean) -> Unit) {
-        val jsonObject = JSONObject()
-        jsonObject.put("name", login)
-        jsonObject.put("password", password)
-        val jsonObjectString = jsonObject.toString()
-        val url = URL("${ServerIp.IP}/login")
-        var flag: Boolean
-        withContext(Dispatchers.IO) {
-            val httpURLConnection = url.openConnection() as HttpURLConnection
+        try{
+            val jsonObject = JSONObject()
+            jsonObject.put("name", login)
+            jsonObject.put("password", password)
+            val jsonObjectString = jsonObject.toString()
+            val url = URL("${ServerIp.IP}/login")
+            var flag: Boolean
+            withContext(Dispatchers.IO) {
+                val httpURLConnection = url.openConnection() as HttpURLConnection
 
-            httpURLConnection.requestMethod = "POST"
-            httpURLConnection.setRequestProperty("Content-Type", "application/json")
-            httpURLConnection.setRequestProperty("Accept", "application/json")
-            httpURLConnection.doInput = true
-            httpURLConnection.doOutput = true
+                httpURLConnection.requestMethod = "POST"
+                httpURLConnection.setRequestProperty("Content-Type", "application/json")
+                httpURLConnection.setRequestProperty("Accept", "application/json")
+                httpURLConnection.doInput = true
+                httpURLConnection.doOutput = true
 
-            val outputStreamWriter = OutputStreamWriter(httpURLConnection.outputStream)
-            outputStreamWriter.write(jsonObjectString)
-            outputStreamWriter.flush()
+                val outputStreamWriter = OutputStreamWriter(httpURLConnection.outputStream)
+                outputStreamWriter.write(jsonObjectString)
+                outputStreamWriter.flush()
 
-            val responseCode = httpURLConnection.responseCode
+                val responseCode = httpURLConnection.responseCode
 
-            val inputStream = if (responseCode.toString().trim() == "302") { httpURLConnection.inputStream
-            } else { httpURLConnection.errorStream }
-            val response = inputStream.bufferedReader().use { it.readText() }
-            val jsonResponse = JSONObject(response)
-            if (responseCode.toString().trim() == "302") {
-                flag = true
-                withContext(Dispatchers.Main) {
-                    val jwtToken = jsonResponse.getString("jwt-token")
-                    val sharedPref = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-                    val editor = sharedPref.edit()
-                    editor.putString("jwt-token", jwtToken)
-                    editor.apply()
-                    Log.d("JWT Token", jwtToken)
-                }
-            } else {
-                flag = false
-                val httpStatus = jsonResponse.getInt("httpStatus")
-                val message = jsonResponse.getString("message")
-                withContext(Dispatchers.Main) {
-                    when (httpStatus) {
-                        404 -> {
-                            Log.e("Error", message)
-                            Toast.makeText(this@MainActivity, "Error: $message", Toast.LENGTH_SHORT).show()
-                        }
-                        else -> {
-                            Log.e("Error", "Unexpected error: $message")
-                            Toast.makeText(this@MainActivity, "Error: $message", Toast.LENGTH_SHORT).show()
+                val inputStream = if (responseCode.toString().trim() == "302") { httpURLConnection.inputStream
+                } else { httpURLConnection.errorStream }
+                val response = inputStream.bufferedReader().use { it.readText() }
+                val jsonResponse = JSONObject(response)
+                if (responseCode.toString().trim() == "302") {
+                    flag = true
+                    withContext(Dispatchers.Main) {
+                        val jwtToken = jsonResponse.getString("jwt-token")
+                        val sharedPref = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                        val editor = sharedPref.edit()
+                        editor.putString("jwt-token", jwtToken)
+                        editor.apply()
+                        Log.d("JWT Token", jwtToken)
+                    }
+                } else {
+                    flag = false
+                    val httpStatus = jsonResponse.getInt("httpStatus")
+                    val message = jsonResponse.getString("message")
+                    withContext(Dispatchers.Main) {
+                        when (httpStatus) {
+                            404 -> {
+                                Log.e("Error", message)
+                                Toast.makeText(this@MainActivity, "Error: $message", Toast.LENGTH_SHORT).show()
+                            }
+                            else -> {
+                                Log.e("Error", "Unexpected error: $message")
+                                Toast.makeText(this@MainActivity, "Error: $message", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     }
                 }
             }
+            onResult(flag)
+        }catch (e: JSONException){
+            withContext(Dispatchers.Main) {
+                Log.e("Error", "Failed to send request: ${e.message}")
+                Toast.makeText(this@MainActivity, "Ошибка на сервере. Попробуйте позже.", Toast.LENGTH_SHORT).show()
+            }
+            onResult(false)
+        }catch (e: Exception){
+            withContext(Dispatchers.Main) {
+                Log.e("Error", "Failed to send request: ${e.message}")
+                Toast.makeText(this@MainActivity, "Непредвиденная ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+            onResult(false)
         }
-        onResult(flag)
     }
 }
